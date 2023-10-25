@@ -27,13 +27,9 @@ async function loadLocaleFile(file) {
 async function validateLocale(locale, keys) {
     // Right now this just checks if there are keys, in a custom locale
     // That are NOT in the "main" locale.
-
-    const localeKeys = Object.keys(locale.messages);
-    const invalidKeys = [];
-    localeKeys.forEach(key => {
-        if (!keys.includes(key))
-            invalidKeys.push(key);
-    });
+    const invalidKeys = Object
+        .keys(locale.messages)
+        .filter(key => !keys.includes(key));
 
     if (invalidKeys.length > 0) {
         // Errors are returned rather than thrown here, so we can log them all, rather than bailing after one.
@@ -65,6 +61,9 @@ async function main() {
         const locales = glob.globSync(path.join(workspace,'*.json'));
 
         for (let locale of locales) {
+            // Skip validating the main language again
+            if (locale.endsWith(mainLanguage))
+                continue;
             core.info(`Validating ${locale}`);
 
             const localeJsonResult = await loadLocaleFile(locale);
