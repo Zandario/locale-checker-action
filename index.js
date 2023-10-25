@@ -5,8 +5,6 @@ const fs = require('fs');
 const path = require('node:path').posix;
 const glob = require('glob');
 
-const GITHUB_TOKEN = core.getInput('GITHUB_TOKEN');
-
 let workspace;
 if (process.env.CI)
     workspace = process.env['GITHUB_WORKSPACE'];
