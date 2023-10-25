@@ -1,0 +1,7 @@
+name: 'Validate Resonite Locale Files'
+description: 'Validates Resonite Locale files, ensuring they are valid json and have keys that exist in our main locale file.'
+author: 'ProbablePrime'
+
+runs:
+  using: 'node20'
+  main: 'index.js'
