@@ -43,9 +43,10 @@ async function loadLocaleFile(file: string): Promise<LocaleFileResult> {
     }
     try {
         core.info(`Reading from ${filePath}`);
+        core.error(`Reading from ${filePath}`, { file: filePath, startLine: 1, endLine: 1, startColumn: 1, endColumn: 1, title: "Invalid locale file" })
         const fileContents = await fs.promises.readFile(filePath, { encoding: 'utf-8' });
         const fileJson = JSON.parse(fileContents);
-        return {success: true, json:fileJson, error: null, annotation: null};
+        return { success: true, json: fileJson, error: null, annotation: null };
     } catch (e) {
         const error: AnnotationProperties = {
             file: filePath,
@@ -53,7 +54,7 @@ async function loadLocaleFile(file: string): Promise<LocaleFileResult> {
             endLine: 0,
             title: `Could not validate the ${file} language file. Reason: ${e}`
         };
-        return {success: false, json:null, error:null, annotation: error};
+        return { success: false, json: null, error: null, annotation: error };
     }
 }
 
@@ -75,9 +76,9 @@ async function validateLocale(locale: any, keys: string[]): Promise<ValidateLoca
             endLine: 0,
             title: `Locale: ${locale.localeCode} has invalid keys: ${invalidKeys.join(',')}`
         };
-        return {success:false, error: null, annotation: error};
+        return { success: false, error: null, annotation: error };
     }
-    return {success:true, error: null, annotation: null};
+    return { success: true, error: null, annotation: null };
 }
 
 async function main() {
