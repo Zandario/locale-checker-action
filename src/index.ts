@@ -2,6 +2,7 @@ import * as core from '@actions/core';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as glob from 'glob';
+import { AnnotationProperties } from '@actions/core';
 
 let workspace: string;
 if (process.env.CI)
@@ -15,6 +16,24 @@ interface LocaleFileResult {
     success: boolean;
     json: any;
     error: Error | null;
+    annotation: AnnotationProperties | null;
+}
+
+async function AnnotationProperties(
+    message: string,
+    file: string,
+    line: number,
+    startColumn: number,
+    endColumn: number): Promise<AnnotationProperties> {
+
+    return {
+        title: message || "Invalid locale file",
+        file: file,
+        startLine: line,
+        endLine: line,
+        startColumn: startColumn,
+        endColumn: endColumn
+    };
 }
 
 async function loadLocaleFile(file: string): Promise<LocaleFileResult> {
@@ -26,15 +45,22 @@ async function loadLocaleFile(file: string): Promise<LocaleFileResult> {
         core.info(`Reading from ${filePath}`);
         const fileContents = await fs.promises.readFile(filePath, { encoding: 'utf-8' });
         const fileJson = JSON.parse(fileContents);
-        return {success: true, json:fileJson, error: null};
+        return {success: true, json:fileJson, error: null, annotation: null};
     } catch (e) {
-        return {success: false, json:null, error: new Error(`Could not validate the ${file} language file. Reason: ${e}`)};
+        const error: AnnotationProperties = {
+            file: filePath,
+            startLine: 0,
+            endLine: 0,
+            title: `Could not validate the ${file} language file. Reason: ${e}`
+        };
+        return {success: false, json:null, error:null, annotation: error};
     }
 }
 
 interface ValidateLocaleResult {
     success: boolean;
     error: Error | null;
+    annotation: AnnotationProperties | null;
 }
 
 async function validateLocale(locale: any, keys: string[]): Promise<ValidateLocaleResult> {
@@ -43,12 +69,15 @@ async function validateLocale(locale: any, keys: string[]): Promise<ValidateLoca
         .filter(key => !keys.includes(key));
 
     if (invalidKeys.length > 0) {
-        return {
-            success:false,
-            error: new Error(`Locale: ${locale.localeCode} has invalid keys: ${invalidKeys.join(',')}`)
+        const error: AnnotationProperties = {
+            file: locale.localeCode,
+            startLine: 0,
+            endLine: 0,
+            title: `Locale: ${locale.localeCode} has invalid keys: ${invalidKeys.join(',')}`
         };
+        return {success:false, error: null, annotation: error};
     }
-    return {success:true, error: null};
+    return {success:true, error: null, annotation: null};
 }
 
 async function main() {
@@ -66,7 +95,7 @@ async function main() {
 
         const mainKeys = Object.keys(mainLocale.messages);
 
-        const locales = glob.globSync(path.join(workspace,'*.json'));
+        const locales = glob.globSync(path.join(workspace, '*.json'));
 
         for (let locale of locales) {
             if (locale.endsWith(mainLanguage))
@@ -90,7 +119,7 @@ async function main() {
         if (errors.length == 0) {
             core.info('All locale files were validated successfully');
         } else {
-            for(let error of errors) {
+            for (let error of errors) {
                 core.error(error.message);
             }
             core.setFailed('Could not validate all locale files, see log for more information.');
