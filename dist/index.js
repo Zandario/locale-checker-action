@@ -33912,7 +33912,6 @@ async function validateLocale(locale, keys) {
 
 async function main() {
     try {
-        let success = true;
         const errors = [];
 
         const mainLocaleResult = await loadLocaleFile(mainLanguage);
@@ -33944,11 +33943,10 @@ async function main() {
 
             const result = await validateLocale(localeJson, mainKeys);
             if (!result.success) {
-                success = false;
                 errors.push(result.error);
             }
         }
-        if (success) {
+        if (errors.length == 0) {
             core.info('All locale files were validated successfully');
             core.set
         } else {
