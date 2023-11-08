@@ -33882,13 +33882,19 @@ else
 const mainLanguage = 'en.json';
 
 async function loadLocaleFile(file) {
+    // There's some oddities between my local run and github. This may fix that I think.. Yay
+    let filePath = file;
+    if (!filePath.includes("Locale")) {
+        filePath = path.join(workspace, file);
+    }
     try {
-        const fileContents = await fs.promises.readFile(path.join(workspace, file), { encoding: 'utf-8' });
+        core.info(`Reading from ${filePath}`);
+        const fileContents = await fs.promises.readFile(filePath, { encoding: 'utf-8' });
         const fileJson = JSON.parse(fileContents);
         return {success: true, json:fileJson, error: null};
     } catch (e) {
         // Errors are returned rather than thrown here, so we can log them all, rather than bailing after one.
-        return {success: false, json:null, error: new Error(`Could not validate the ${file} language file.`)};
+        return {success: false, json:null, error: new Error(`Could not validate the ${file} language file. Reason: ${e}`)};
     }
 }
 
@@ -33931,6 +33937,7 @@ async function main() {
             // Skip validating the main language again
             if (locale.endsWith(mainLanguage))
                 continue;
+
             core.info(`Validating ${locale}`);
 
             const localeJsonResult = await loadLocaleFile(locale);
