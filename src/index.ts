@@ -2,24 +2,11 @@ import * as core from '@actions/core';
 import * as fs from 'fs';
 import * as path from 'node:path';
 import * as glob from 'glob';
+import { AnnotationMessage, Locale } from './helper';
 
-// Sue me, I'm lazy
-var jsonSchemaGenerator = require('json-schema-generator'),
-    obj = { some: { object: true } },
-    schemaObj;
-
-interface Locale {
-    localeCode: string;
-    messages: Record<string, string>;
-}
-
-let workspace: string;
-if (process.env.CI)
-    workspace = process.env['GITHUB_WORKSPACE'] || '';
-else
-    workspace = './../Locale';
-
+const workspace: string = process.env.CI ? process.env['GITHUB_WORKSPACE'] || '' : './../Locale';
 const mainLanguage = 'en.json';
+
 
 async function loadLocaleFile(file: string): Promise<{ success: boolean, json: Locale | null, error: Error | null }> {
     let filePath = file;
@@ -50,18 +37,16 @@ async function validateLocale(locale: Locale, keys: string[]): Promise<{ success
     return { success: true, error: null };
 }
 
+
 async function main(): Promise<void> {
     try {
 
-        core.debug(`Parsing locale files in ${workspace}`);
+        core.info(`Parsing locale files in ${workspace}`);
         // Read the reference JSON file
         const referenceData = JSON.parse(fs.readFileSync('en.json', 'utf8'));
 
         // Get the keys from the reference JSON file
         const referenceKeys = Object.keys(referenceData);
-
-        core.info(jsonSchemaGenerator(referenceData));
-
 
         const errors: Error[] = [];
 
@@ -78,11 +63,26 @@ async function main(): Promise<void> {
 
         const mainKeys = Object.keys(mainLocale!.messages);
 
-        const locales = glob.sync(path.join(workspace, '*.json'));
+        const locales = glob.sync(path.join(workspace, '*.json')).filter(locales => locales !== 'mainLanguage');
 
+        core.startGroup('Experimental Test')
+        for (const localeFile of locales) {
+            core.debug(`Reading ${localeFile}`);
+            // Read the JSON file
+            const data = JSON.parse(fs.readFileSync(localeFile, 'utf8'));
+
+            // Check that each key exists in the JSON file
+            for (const key of referenceKeys) {
+                if (!(key in data)) {
+                    console.log(`Key ${key} is missing from ${localeFile}`);
+                }
+            }
+        }
+        core.endGroup()
+
+
+        core.startGroup('Stable Test')
         for (let locale of locales) {
-            if (locale.endsWith(mainLanguage))
-                continue;
 
             core.debug(`Validating ${locale}`);
 
@@ -111,6 +111,8 @@ async function main(): Promise<void> {
             }
             core.setFailed('Could not validate all locale files, see log for more information.');
         }
+        core.endGroup()
+
     } catch (e) {
         if (e instanceof Error) {
             core.setFailed(e.message);
