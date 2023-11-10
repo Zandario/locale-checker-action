@@ -19,6 +19,7 @@
   "devDependencies": {
     "@types/json-schema-generator": "^2.0.3",
     "@vercel/ncc": "^0.38.1",
-    "json-schema-generator": "^2.0.6"
+    "json-source-map": "^0.6.1",
+    "typescript": "^5.2.2"
   }
 }

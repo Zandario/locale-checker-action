@@ -3,7 +3,12 @@ import * as fs from 'fs';
 import * as path from 'node:path';
 import * as glob from 'glob';
 import * as helper from './helper';
+import { AnnotationProperties } from '@actions/core';
 import { AnnotatedError, Locale } from './helper';
+
+declare var require: any;
+const jsonSourceMap = require('json-source-map');
+
 
 const workspace: string = process.env.CI ? process.env['GITHUB_WORKSPACE'] || '' : './../Locale';
 const mainLanguage = 'en.json';
@@ -17,10 +22,18 @@ async function loadLocaleFile(file: string): Promise<{ success: boolean, json: L
     try {
         core.debug(`Reading from ${filePath}`);
         const fileContents = await fs.promises.readFile(filePath, { encoding: 'utf-8' });
-        const fileJson = JSON.parse(fileContents) as Locale;
-        return { success: true, json: fileJson, error: null };
-    } catch (e) {
-        return { success: false, json: null, error: new AnnotatedError(`Could not validate the ${file} language file. Reason: ${e}`) };
+        const parsed = jsonSourceMap.parse(fileContents);
+        return { success: true, json: parsed.data as Locale, error: null };
+    } catch (e: any) {
+        const line = e.mark ? e.mark.line : 0;
+        const column = e.mark ? e.mark.column : 0;
+        const annotationProperties: AnnotationProperties = {
+            title: `Could not validate the ${file} language file. Reason: ${e}`,
+            file: filePath,
+            startLine: line + 1, // json-source-map uses 0-based line numbers, but GitHub uses 1-based line numbers
+            startColumn: column + 1, // json-source-map uses 0-based column numbers, but GitHub uses 1-based column numbers
+        };
+        return { success: false, json: null, error: new AnnotatedError(`Could not validate the ${file} language file. Reason: ${e}`, annotationProperties) };
     }
 }
 
@@ -64,7 +77,7 @@ async function main(): Promise<void> {
 
         for (let locale of locales) {
 
-            core.startGroup(`Validating ${locale}`);
+            core.info(`Validating ${locale}`);
 
             const localeJsonResult = await loadLocaleFile(locale);
             if (!localeJsonResult.success) {
@@ -83,7 +96,6 @@ async function main(): Promise<void> {
                 }
             }
 
-            core.endGroup();
         }
 
 
