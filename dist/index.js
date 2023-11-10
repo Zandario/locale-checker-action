@@ -26045,10 +26045,10 @@ function main() {
             const mainLocale = mainLocaleResult.json;
             const mainKeys = Object.keys(mainLocale.messages);
             const locales = glob.sync(path.join(workspace, '*.json')).filter(locales => locales !== 'mainLanguage');
+            core.startGroup('Outputs');
             core.startGroup('Experimental Test');
-            core.info(`Starting Experimental Test`);
             for (const localeFile of locales) {
-                core.debug(`Reading ${localeFile}`);
+                core.info(`Reading ${localeFile}`);
                 // Read the JSON file
                 const data = JSON.parse(fs.readFileSync(localeFile, 'utf8'));
                 // Check that each key exists in the JSON file
@@ -26059,10 +26059,9 @@ function main() {
                 }
             }
             core.endGroup();
-            core.info(`Ending Experimental Test`);
             core.startGroup('Stable Test');
             for (let locale of locales) {
-                core.debug(`Validating ${locale}`);
+                core.info(`Validating ${locale}`);
                 const localeJsonResult = yield loadLocaleFile(locale);
                 if (!localeJsonResult.success) {
                     if (localeJsonResult.error) {
@@ -26078,8 +26077,9 @@ function main() {
                     }
                 }
             }
+            core.endGroup();
             if (errors.length == 0) {
-                core.debug('All locale files were validated successfully');
+                core.info('All locale files were validated successfully');
             }
             else {
                 for (let error of errors) {
@@ -26087,7 +26087,6 @@ function main() {
                 }
                 core.setFailed('Could not validate all locale files, see log for more information.');
             }
-            core.endGroup();
         }
         catch (e) {
             if (e instanceof Error) {
@@ -26097,6 +26096,7 @@ function main() {
                 core.setFailed('An unknown error occurred');
             }
         }
+        core.endGroup();
     });
 }
 main();

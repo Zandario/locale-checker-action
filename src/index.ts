@@ -120,6 +120,7 @@ async function main(): Promise<void> {
             core.setFailed('An unknown error occurred');
         }
     }
+        core.endGroup()
 }
 
 main();
