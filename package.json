@@ -17,6 +17,8 @@
     "glob": "^10.3.10"
   },
   "devDependencies": {
-    "@vercel/ncc": "^0.38.1"
+    "@types/json-schema-generator": "^2.0.3",
+    "@vercel/ncc": "^0.38.1",
+    "json-schema-generator": "^2.0.6"
   }
 }

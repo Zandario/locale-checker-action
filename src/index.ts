@@ -3,6 +3,11 @@ import * as fs from 'fs';
 import * as path from 'node:path';
 import * as glob from 'glob';
 
+// Sue me, I'm lazy
+var jsonSchemaGenerator = require('json-schema-generator'),
+    obj = { some: { object: true } },
+    schemaObj;
+
 interface Locale {
     localeCode: string;
     messages: Record<string, string>;
@@ -16,13 +21,23 @@ else
 
 const mainLanguage = 'en.json';
 
+core.debug(`Parsing locale files in ${workspace}`);
+// Read the reference JSON file
+const referenceData = JSON.parse(fs.readFileSync('en.json', 'utf8'));
+
+// Get the keys from the reference JSON file
+const referenceKeys = Object.keys(referenceData);
+
+schemaObj = jsonSchemaGenerator(fs.readFileSync('en.json', 'utf8'));
+core.debug(schemaObj);
+
 async function loadLocaleFile(file: string): Promise<{ success: boolean, json: Locale | null, error: Error | null }> {
     let filePath = file;
     if (!filePath.includes("Locale")) {
         filePath = path.join(workspace, file);
     }
     try {
-        core.info(`Reading from ${filePath}`);
+        core.debug(`Reading from ${filePath}`);
         const fileContents = await fs.promises.readFile(filePath, { encoding: 'utf-8' });
         const fileJson = JSON.parse(fileContents) as Locale;
         return { success: true, json: fileJson, error: null };
@@ -68,7 +83,7 @@ async function main(): Promise<void> {
             if (locale.endsWith(mainLanguage))
                 continue;
 
-            core.info(`Validating ${locale}`);
+            core.debug(`Validating ${locale}`);
 
             const localeJsonResult = await loadLocaleFile(locale);
             if (!localeJsonResult.success) {
@@ -88,7 +103,7 @@ async function main(): Promise<void> {
             }
         }
         if (errors.length == 0) {
-            core.info('All locale files were validated successfully');
+            core.debug('All locale files were validated successfully');
         } else {
             for (let error of errors) {
                 core.error(error.message);
