@@ -26452,7 +26452,7 @@ var __importStar = (this && this.__importStar) || function (mod) {
     return result;
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.error = exports.AnnotatedError = void 0;
+exports.printErrors = exports.AnnotatedError = void 0;
 const core = __importStar(__nccwpck_require__(2186));
 class AnnotatedError {
     constructor(message, annotationProperties) {
@@ -26471,16 +26471,18 @@ exports.AnnotatedError = AnnotatedError;
  * @param message error issue message. Errors will be converted to string via toString()
  * @param properties optional properties to add to the annotation.
  */
-function error(annotatedError) {
-    if (annotatedError.annotationProperties) {
-        core.error(annotatedError.error, annotatedError.annotationProperties);
-    }
-    else {
-        core.error(annotatedError.error.message);
+function printErrors(annotatedErrors) {
+    for (let annotatedError of annotatedErrors) {
+        if (annotatedError.annotationProperties) {
+            core.error(annotatedError.error, annotatedError.annotationProperties);
+        }
+        else {
+            core.error(annotatedError.error.message);
+        }
     }
     process.exitCode = core.ExitCode.Failure;
 }
-exports.error = error;
+exports.printErrors = printErrors;
 
 
 /***/ }),
@@ -26532,43 +26534,55 @@ const helper_1 = __nccwpck_require__(2707);
 const jsonSourceMap = __nccwpck_require__(2833);
 const workspace = process.env.CI ? process.env['GITHUB_WORKSPACE'] || '' : './../Locale';
 const mainLanguage = 'en.json';
-function loadLocaleFile(file) {
+function loadLocaleFile(filePath) {
     return __awaiter(this, void 0, void 0, function* () {
-        let filePath = file;
         if (!filePath.includes("Locale")) {
-            filePath = path.join(workspace, file);
+            filePath = path.join(workspace, filePath);
         }
         try {
-            core.debug(`Reading from ${filePath}`);
+            core.info(`Reading from ${filePath}`);
             const fileContents = yield fs.promises.readFile(filePath, { encoding: 'utf-8' });
             const parsed = jsonSourceMap.parse(fileContents);
-            return { success: true, json: parsed.data, error: null };
+            return { success: true, json: parsed.data, errors: null };
         }
         catch (e) {
             const line = e.mark ? e.mark.line : 0;
             const column = e.mark ? e.mark.column : 0;
             const annotationProperties = {
-                title: `Could not validate the ${file} language file. Reason: ${e}`,
+                title: `Could not validate the ${filePath} language file. Reason: ${e}`,
                 file: filePath,
                 startLine: line + 1,
                 startColumn: column + 1, // json-source-map uses 0-based column numbers, but GitHub uses 1-based column numbers
             };
-            return { success: false, json: null, error: new helper_1.AnnotatedError(`Could not validate the ${file} language file. Reason: ${e}`, annotationProperties) };
+            return { success: false, json: null, errors: [new helper_1.AnnotatedError(`Could not validate the ${filePath} language file. Reason: ${e}`, annotationProperties)] };
         }
     });
 }
-function validateLocale(locale, keys) {
+function validateLocale(filePath, locale, keys) {
     return __awaiter(this, void 0, void 0, function* () {
         const invalidKeys = Object
             .keys(locale.messages)
             .filter((key) => !keys.includes(key));
         if (invalidKeys.length > 0) {
+            const fileContents = yield fs.promises.readFile(filePath, { encoding: 'utf-8' });
+            const parsed = jsonSourceMap.parse(fileContents);
+            const errors = invalidKeys.map(key => {
+                const pointer = `/messages/${key}`;
+                const position = parsed.pointers[pointer];
+                const annotationProperties = {
+                    title: `Invalid key in locale: ${locale.localeCode}`,
+                    file: filePath,
+                    startLine: position.value.line + 1,
+                    startColumn: position.value.column + 1, // json-source-map uses 0-based column numbers, but GitHub uses 1-based column numbers
+                };
+                return new helper_1.AnnotatedError(`Locale: ${locale.localeCode} has invalid key: ${key}`, annotationProperties);
+            });
             return {
                 success: false,
-                error: new helper_1.AnnotatedError(`Locale: ${locale.localeCode} has invalid keys: ${invalidKeys.join(',')}`)
+                errors: errors
             };
         }
-        return { success: true, error: null };
+        return { success: true, errors: null };
     });
 }
 function main() {
@@ -26581,8 +26595,8 @@ function main() {
             const referenceKeys = Object.keys(referenceData);
             const mainLocaleResult = yield loadLocaleFile(mainLanguage);
             if (!mainLocaleResult.success) {
-                if (mainLocaleResult.error) {
-                    helper.error(mainLocaleResult.error);
+                if (mainLocaleResult.errors) {
+                    helper.printErrors(mainLocaleResult.errors);
                 }
                 core.setFailed("Unable to load and validate the main locale.");
                 return;
@@ -26591,19 +26605,18 @@ function main() {
             const mainKeys = Object.keys(mainLocale.messages);
             const locales = glob.sync(path.join(workspace, '*.json')).filter(locales => locales !== 'mainLanguage');
             for (let locale of locales) {
-                core.info(`Validating ${locale}`);
+                core.startGroup(`Validating ${locale}`);
                 const localeJsonResult = yield loadLocaleFile(locale);
+                const validationResult = yield validateLocale(locale, localeJsonResult.json, mainKeys);
                 if (!localeJsonResult.success) {
-                    if (localeJsonResult.error) {
-                        helper.error(localeJsonResult.error);
+                    if (localeJsonResult.errors) {
+                        helper.printErrors(localeJsonResult.errors);
                     }
                     continue;
                 }
-                const localeJson = localeJsonResult.json;
-                const result = yield validateLocale(localeJson, mainKeys);
-                if (!result.success) {
-                    if (result.error) {
-                        helper.error(result.error);
+                if (!validationResult.success) {
+                    if (validationResult.errors) {
+                        helper.printErrors(validationResult.errors);
                     }
                 }
             }

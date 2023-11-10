@@ -32,12 +32,14 @@ export class AnnotatedError {
  * @param message error issue message. Errors will be converted to string via toString()
  * @param properties optional properties to add to the annotation.
  */
-export function error(annotatedError: AnnotatedError): void {
-    if (annotatedError.annotationProperties) {
-        core.error(annotatedError.error, annotatedError.annotationProperties);
-    }
-    else {
-        core.error(annotatedError.error.message);
+export function printErrors(annotatedErrors: AnnotatedError[]): void {
+    for (let annotatedError of annotatedErrors) {
+        if (annotatedError.annotationProperties) {
+            core.error(annotatedError.error, annotatedError.annotationProperties);
+        }
+        else {
+            core.error(annotatedError.error.message);
+        }
     }
     process.exitCode = core.ExitCode.Failure;
 }
