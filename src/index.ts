@@ -63,7 +63,6 @@ async function main(): Promise<void> {
         const mainKeys = Object.keys(mainLocale!.messages);
         const locales = glob.sync(path.join(workspace, '*.json')).filter(locales => locales !== 'mainLanguage');
 
-        core.startGroup('Outputs')
         core.startGroup('Experimental Test')
 
         for (const localeFile of locales) {
@@ -113,7 +112,6 @@ async function main(): Promise<void> {
             core.setFailed('Could not validate all locale files, see log for more information.');
         }
 
-        core.endGroup()
     } catch (e) {
         if (e instanceof Error) {
             core.setFailed(e.message);

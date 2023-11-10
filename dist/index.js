@@ -26045,7 +26045,6 @@ function main() {
             const mainLocale = mainLocaleResult.json;
             const mainKeys = Object.keys(mainLocale.messages);
             const locales = glob.sync(path.join(workspace, '*.json')).filter(locales => locales !== 'mainLanguage');
-            core.startGroup('Outputs');
             core.startGroup('Experimental Test');
             for (const localeFile of locales) {
                 core.info(`Reading ${localeFile}`);
@@ -26087,7 +26086,6 @@ function main() {
                 }
                 core.setFailed('Could not validate all locale files, see log for more information.');
             }
-            core.endGroup();
         }
         catch (e) {
             if (e instanceof Error) {
