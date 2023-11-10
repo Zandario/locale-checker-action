@@ -66,6 +66,7 @@ async function main(): Promise<void> {
         const locales = glob.sync(path.join(workspace, '*.json')).filter(locales => locales !== 'mainLanguage');
 
         core.startGroup('Experimental Test')
+        core.info(`Starting Experimental Test`);
         for (const localeFile of locales) {
             core.debug(`Reading ${localeFile}`);
             // Read the JSON file
@@ -79,6 +80,7 @@ async function main(): Promise<void> {
             }
         }
         core.endGroup()
+        core.info(`Ending Experimental Test`);
 
 
         core.startGroup('Stable Test')
