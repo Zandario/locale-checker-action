@@ -25951,22 +25951,62 @@ exports["default"] = _default;
 /***/ }),
 
 /***/ 2707:
-/***/ ((__unused_webpack_module, exports) => {
+/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
 
 "use strict";
 
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.AnnotatedError = void 0;
-class AnnotatedError extends Error {
+exports.error = exports.AnnotatedError = void 0;
+const core = __importStar(__nccwpck_require__(2186));
+class AnnotatedError {
     constructor(message, annotationProperties) {
-        super(message); // Call the constructor of the Error class.
-        this.name = 'AnnotatedError'; // Set the name property.
+        if (message instanceof Error) {
+            this.error = message;
+        }
+        else {
+            this.error = new Error(message);
+        }
         this.annotationProperties = annotationProperties;
-        // This line is needed to make the instanceof operator work correctly.
-        Object.setPrototypeOf(this, AnnotatedError.prototype);
     }
 }
 exports.AnnotatedError = AnnotatedError;
+/**
+ * Adds an error issue
+ * @param message error issue message. Errors will be converted to string via toString()
+ * @param properties optional properties to add to the annotation.
+ */
+function error(annotatedError) {
+    if (annotatedError.annotationProperties) {
+        core.error(annotatedError.error, annotatedError.annotationProperties);
+    }
+    else {
+        core.error(annotatedError.error.message);
+    }
+}
+exports.error = error;
 
 
 /***/ }),
@@ -26013,6 +26053,7 @@ const core = __importStar(__nccwpck_require__(2186));
 const fs = __importStar(__nccwpck_require__(7147));
 const path = __importStar(__nccwpck_require__(9411));
 const glob = __importStar(__nccwpck_require__(8211));
+const helper = __importStar(__nccwpck_require__(2707));
 const helper_1 = __nccwpck_require__(2707);
 const workspace = process.env.CI ? process.env['GITHUB_WORKSPACE'] || '' : './../Locale';
 const mainLanguage = 'en.json';
@@ -26055,11 +26096,10 @@ function main() {
             const referenceData = JSON.parse(fs.readFileSync('en.json', 'utf8'));
             // Get the keys from the reference JSON file
             const referenceKeys = Object.keys(referenceData);
-            const errors = [];
             const mainLocaleResult = yield loadLocaleFile(mainLanguage);
             if (!mainLocaleResult.success) {
                 if (mainLocaleResult.error) {
-                    core.error(mainLocaleResult.error.message);
+                    helper.error(mainLocaleResult.error);
                 }
                 core.setFailed("Unable to load and validate the main locale.");
                 return;
@@ -26073,7 +26113,7 @@ function main() {
                 const localeJsonResult = yield loadLocaleFile(locale);
                 if (!localeJsonResult.success) {
                     if (localeJsonResult.error) {
-                        errors.push(localeJsonResult.error);
+                        helper.error(localeJsonResult.error);
                     }
                     continue;
                 }
@@ -26081,23 +26121,14 @@ function main() {
                 const result = yield validateLocale(localeJson, mainKeys);
                 if (!result.success) {
                     if (result.error) {
-                        errors.push(result.error);
+                        helper.error(result.error);
                     }
                 }
-            }
-            if (errors.length == 0) {
-                core.info('All locale files were validated successfully');
-            }
-            else {
-                for (let error of errors) {
-                    core.error(error.message);
-                }
-                core.setFailed('Could not validate all locale files, see log for more information.');
             }
             core.endGroup();
         }
         catch (e) {
-            if (e instanceof helper_1.AnnotatedError) {
+            if (e instanceof Error) {
                 core.setFailed(e.message);
             }
             else {

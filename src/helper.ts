@@ -9,15 +9,35 @@ export interface Locale {
     messages: Record<string, string>;
 }
 
-export class AnnotatedError extends Error {
+export class AnnotatedError {
+    error: Error;
     annotationProperties?: AnnotationProperties;
 
-    constructor(message?: string, annotationProperties?: AnnotationProperties) {
-        super(message); // Call the constructor of the Error class.
-        this.name = 'AnnotatedError'; // Set the name property.
+    constructor(message: string | Error, annotationProperties?: AnnotationProperties) {
+        if (message instanceof Error) {
+            this.error = message;
+        }
+        else {
+            this.error = new Error(message);
+        }
         this.annotationProperties = annotationProperties;
+    }
 
-        // This line is needed to make the instanceof operator work correctly.
-        Object.setPrototypeOf(this, AnnotatedError.prototype);
+}
+
+
+
+/**
+ * Adds an error issue
+ * @param message error issue message. Errors will be converted to string via toString()
+ * @param properties optional properties to add to the annotation.
+ */
+export function error(annotatedError: AnnotatedError): void {
+
+    if (annotatedError.annotationProperties) {
+        core.error(annotatedError.error, annotatedError.annotationProperties);
+    }
+    else {
+        core.error(annotatedError.error.message);
     }
 }

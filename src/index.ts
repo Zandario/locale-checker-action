@@ -2,6 +2,7 @@ import * as core from '@actions/core';
 import * as fs from 'fs';
 import * as path from 'node:path';
 import * as glob from 'glob';
+import * as helper from './helper';
 import { AnnotatedError, Locale } from './helper';
 
 const workspace: string = process.env.CI ? process.env['GITHUB_WORKSPACE'] || '' : './../Locale';
@@ -48,12 +49,10 @@ async function main(): Promise<void> {
         // Get the keys from the reference JSON file
         const referenceKeys = Object.keys(referenceData);
 
-        const errors: AnnotatedError[] = [];
-
         const mainLocaleResult = await loadLocaleFile(mainLanguage);
         if (!mainLocaleResult.success) {
             if (mainLocaleResult.error) {
-                core.error(mainLocaleResult.error.message);
+                helper.error(mainLocaleResult.error);
             }
             core.setFailed("Unable to load and validate the main locale.");
             return;
@@ -71,7 +70,7 @@ async function main(): Promise<void> {
             const localeJsonResult = await loadLocaleFile(locale);
             if (!localeJsonResult.success) {
                 if (localeJsonResult.error) {
-                    errors.push(localeJsonResult.error);
+                    helper.error(localeJsonResult.error);
                 }
                 continue;
             }
@@ -81,23 +80,15 @@ async function main(): Promise<void> {
             const result = await validateLocale(localeJson!, mainKeys);
             if (!result.success) {
                 if (result.error) {
-                    errors.push(result.error);
+                    helper.error(result.error);
                 }
             }
         }
 
-        if (errors.length == 0) {
-            core.info('All locale files were validated successfully');
-        } else {
-            for (let error of errors) {
-                core.error(error.message);
-            }
-            core.setFailed('Could not validate all locale files, see log for more information.');
-        }
         core.endGroup()
 
     } catch (e) {
-        if (e instanceof AnnotatedError) {
+        if (e instanceof Error) {
             core.setFailed(e.message);
         } else {
             core.setFailed('An unknown error occurred');
