@@ -49,12 +49,12 @@ async function validateLocale(filePath: string, locale: Locale, keys: string[]):
             const pointer = `/messages/${key}`;
             const position = parsed.pointers[pointer];
             const annotationProperties: AnnotationProperties = {
-                title: `Invalid key in locale: ${locale.localeCode}`,
+                title: `Invalid key`,
                 file: filePath,
                 startLine: position.value.line + 1, // json-source-map uses 0-based line numbers, but GitHub uses 1-based line numbers
                 startColumn: position.value.column + 1, // json-source-map uses 0-based column numbers, but GitHub uses 1-based column numbers
             };
-            return new AnnotatedError(`Locale: ${locale.localeCode} has invalid key: ${key}`, annotationProperties);
+            return new AnnotatedError(`${key} is not a valid entry, either remove it or add it to ${mainLanguage}`, annotationProperties);
         });
 
         return {
