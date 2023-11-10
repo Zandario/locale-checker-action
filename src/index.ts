@@ -51,16 +51,18 @@ async function validateLocale(locale: Locale, keys: string[]): Promise<{ success
 }
 
 async function main(): Promise<void> {
-    core.debug(`Parsing locale files in ${workspace}`);
-    // Read the reference JSON file
-    const referenceData = JSON.parse(fs.readFileSync('en.json', 'utf8'));
-
-    // Get the keys from the reference JSON file
-    const referenceKeys = Object.keys(referenceData);
-
-    core.debug(jsonSchemaGenerator(referenceData));
-
     try {
+
+        core.debug(`Parsing locale files in ${workspace}`);
+        // Read the reference JSON file
+        const referenceData = JSON.parse(fs.readFileSync('en.json', 'utf8'));
+
+        // Get the keys from the reference JSON file
+        const referenceKeys = Object.keys(referenceData);
+
+        core.info(jsonSchemaGenerator(referenceData));
+
+
         const errors: Error[] = [];
 
         const mainLocaleResult = await loadLocaleFile(mainLanguage);
