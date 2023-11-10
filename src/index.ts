@@ -60,15 +60,14 @@ async function main(): Promise<void> {
         }
 
         const mainLocale = mainLocaleResult.json;
-
         const mainKeys = Object.keys(mainLocale!.messages);
-
         const locales = glob.sync(path.join(workspace, '*.json')).filter(locales => locales !== 'mainLanguage');
 
+        core.startGroup('Outputs')
         core.startGroup('Experimental Test')
-        core.info(`Starting Experimental Test`);
+
         for (const localeFile of locales) {
-            core.debug(`Reading ${localeFile}`);
+            core.info(`Reading ${localeFile}`);
             // Read the JSON file
             const data = JSON.parse(fs.readFileSync(localeFile, 'utf8'));
 
@@ -80,13 +79,11 @@ async function main(): Promise<void> {
             }
         }
         core.endGroup()
-        core.info(`Ending Experimental Test`);
-
 
         core.startGroup('Stable Test')
         for (let locale of locales) {
 
-            core.debug(`Validating ${locale}`);
+            core.info(`Validating ${locale}`);
 
             const localeJsonResult = await loadLocaleFile(locale);
             if (!localeJsonResult.success) {
@@ -105,15 +102,16 @@ async function main(): Promise<void> {
                 }
             }
         }
+        core.endGroup()
+
         if (errors.length == 0) {
-            core.debug('All locale files were validated successfully');
+            core.info('All locale files were validated successfully');
         } else {
             for (let error of errors) {
                 core.error(error.message);
             }
             core.setFailed('Could not validate all locale files, see log for more information.');
         }
-        core.endGroup()
 
     } catch (e) {
         if (e instanceof Error) {
