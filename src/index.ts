@@ -21,16 +21,6 @@ else
 
 const mainLanguage = 'en.json';
 
-core.debug(`Parsing locale files in ${workspace}`);
-// Read the reference JSON file
-const referenceData = JSON.parse(fs.readFileSync('en.json', 'utf8'));
-
-// Get the keys from the reference JSON file
-const referenceKeys = Object.keys(referenceData);
-
-schemaObj = jsonSchemaGenerator(fs.readFileSync('en.json', 'utf8'));
-core.debug(schemaObj);
-
 async function loadLocaleFile(file: string): Promise<{ success: boolean, json: Locale | null, error: Error | null }> {
     let filePath = file;
     if (!filePath.includes("Locale")) {
@@ -61,6 +51,15 @@ async function validateLocale(locale: Locale, keys: string[]): Promise<{ success
 }
 
 async function main(): Promise<void> {
+    core.debug(`Parsing locale files in ${workspace}`);
+    // Read the reference JSON file
+    const referenceData = JSON.parse(fs.readFileSync('en.json', 'utf8'));
+
+    // Get the keys from the reference JSON file
+    const referenceKeys = Object.keys(referenceData);
+
+    schemaObj = jsonSchemaGenerator(fs.readFileSync('en.json', 'utf8'));
+    core.debug(schemaObj);
     try {
         const errors: Error[] = [];
 
