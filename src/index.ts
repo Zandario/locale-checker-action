@@ -58,8 +58,8 @@ async function main(): Promise<void> {
     // Get the keys from the reference JSON file
     const referenceKeys = Object.keys(referenceData);
 
-    schemaObj = jsonSchemaGenerator(fs.readFileSync('en.json', 'utf8'));
-    core.debug(schemaObj);
+    core.debug(jsonSchemaGenerator(referenceData));
+
     try {
         const errors: Error[] = [];
 
