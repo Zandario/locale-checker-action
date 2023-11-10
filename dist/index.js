@@ -26034,6 +26034,7 @@ function main() {
             // Get the keys from the reference JSON file
             const referenceKeys = Object.keys(referenceData);
             const errors = [];
+            const experimentalErrors = [];
             const mainLocaleResult = yield loadLocaleFile(mainLanguage);
             if (!mainLocaleResult.success) {
                 if (mainLocaleResult.error) {
@@ -26049,13 +26050,29 @@ function main() {
             for (const localeFile of locales) {
                 core.info(`Reading ${localeFile}`);
                 // Read the JSON file
-                const data = JSON.parse(fs.readFileSync(localeFile, 'utf8'));
+                const LocaleData = JSON.parse(fs.readFileSync(localeFile, 'utf8'));
                 // Check that each key exists in the JSON file
                 for (const key of referenceKeys) {
-                    if (!(key in data)) {
+                    if (!(key in LocaleData)) {
                         console.log(`Key ${key} is missing from ${localeFile}`);
                     }
                 }
+                // Check for keys in data that aren't in the reference
+                for (const key in LocaleData) {
+                    if (!referenceKeys.includes(key)) {
+                        experimentalErrors.push(new Error(`Key ${key} is not in the reference but exists in ${localeFile}`));
+                        // console.log(`Key ${key} is not in the reference but exists in ${localeFile}`);
+                    }
+                }
+            }
+            if (experimentalErrors.length == 0) {
+                core.info('All locale files were validated successfully');
+            }
+            else {
+                for (let error of experimentalErrors) {
+                    core.error(error.message);
+                }
+                core.setFailed('Could not validate all locale files, see log for more information.');
             }
             core.endGroup();
             core.startGroup('Stable Test');
@@ -26076,7 +26093,6 @@ function main() {
                     }
                 }
             }
-            core.endGroup();
             if (errors.length == 0) {
                 core.info('All locale files were validated successfully');
             }
@@ -26086,6 +26102,7 @@ function main() {
                 }
                 core.setFailed('Could not validate all locale files, see log for more information.');
             }
+            core.endGroup();
         }
         catch (e) {
             if (e instanceof Error) {

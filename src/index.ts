@@ -49,6 +49,7 @@ async function main(): Promise<void> {
         const referenceKeys = Object.keys(referenceData);
 
         const errors: Error[] = [];
+        const experimentalErrors: Error[] = [];
 
         const mainLocaleResult = await loadLocaleFile(mainLanguage);
         if (!mainLocaleResult.success) {
@@ -68,14 +69,29 @@ async function main(): Promise<void> {
         for (const localeFile of locales) {
             core.info(`Reading ${localeFile}`);
             // Read the JSON file
-            const data = JSON.parse(fs.readFileSync(localeFile, 'utf8'));
+            const LocaleData = JSON.parse(fs.readFileSync(localeFile, 'utf8'));
 
             // Check that each key exists in the JSON file
             for (const key of referenceKeys) {
-                if (!(key in data)) {
+                if (!(key in LocaleData)) {
                     console.log(`Key ${key} is missing from ${localeFile}`);
                 }
             }
+            // Check for keys in data that aren't in the reference
+            for (const key in LocaleData) {
+                if (!referenceKeys.includes(key)) {
+                    experimentalErrors.push(new Error(`Key ${key} is not in the reference but exists in ${localeFile}`));
+                    // console.log(`Key ${key} is not in the reference but exists in ${localeFile}`);
+                }
+            }
+        }
+        if (experimentalErrors.length == 0) {
+            core.info('All locale files were validated successfully');
+        } else {
+            for (let error of experimentalErrors) {
+                core.error(error.message);
+            }
+            core.setFailed('Could not validate all locale files, see log for more information.');
         }
         core.endGroup()
 
@@ -101,7 +117,6 @@ async function main(): Promise<void> {
                 }
             }
         }
-        core.endGroup()
 
         if (errors.length == 0) {
             core.info('All locale files were validated successfully');
@@ -111,6 +126,7 @@ async function main(): Promise<void> {
             }
             core.setFailed('Could not validate all locale files, see log for more information.');
         }
+        core.endGroup()
 
     } catch (e) {
         if (e instanceof Error) {
