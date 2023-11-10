@@ -26108,9 +26108,8 @@ function main() {
             const mainLocale = mainLocaleResult.json;
             const mainKeys = Object.keys(mainLocale.messages);
             const locales = glob.sync(path.join(workspace, '*.json')).filter(locales => locales !== 'mainLanguage');
-            core.startGroup('Validating Locales');
             for (let locale of locales) {
-                core.info(`Validating ${locale}`);
+                core.startGroup(`Validating ${locale}`);
                 const localeJsonResult = yield loadLocaleFile(locale);
                 if (!localeJsonResult.success) {
                     if (localeJsonResult.error) {
@@ -26125,8 +26124,8 @@ function main() {
                         helper.error(result.error);
                     }
                 }
+                core.endGroup();
             }
-            core.endGroup();
         }
         catch (e) {
             if (e instanceof Error) {

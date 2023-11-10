@@ -62,10 +62,9 @@ async function main(): Promise<void> {
         const mainKeys = Object.keys(mainLocale!.messages);
         const locales = glob.sync(path.join(workspace, '*.json')).filter(locales => locales !== 'mainLanguage');
 
-        core.startGroup('Validating Locales')
         for (let locale of locales) {
 
-            core.info(`Validating ${locale}`);
+            core.startGroup(`Validating ${locale}`);
 
             const localeJsonResult = await loadLocaleFile(locale);
             if (!localeJsonResult.success) {
@@ -83,9 +82,10 @@ async function main(): Promise<void> {
                     helper.error(result.error);
                 }
             }
+
+            core.endGroup();
         }
 
-        core.endGroup()
 
     } catch (e) {
         if (e instanceof Error) {
