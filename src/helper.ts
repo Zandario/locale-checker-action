@@ -33,11 +33,11 @@ export class AnnotatedError {
  * @param properties optional properties to add to the annotation.
  */
 export function error(annotatedError: AnnotatedError): void {
-
     if (annotatedError.annotationProperties) {
         core.error(annotatedError.error, annotatedError.annotationProperties);
     }
     else {
         core.error(annotatedError.error.message);
     }
+    process.exitCode = core.ExitCode.Failure;
 }

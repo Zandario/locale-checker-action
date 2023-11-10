@@ -26005,6 +26005,7 @@ function error(annotatedError) {
     else {
         core.error(annotatedError.error.message);
     }
+    process.exitCode = core.ExitCode.Failure;
 }
 exports.error = error;
 
