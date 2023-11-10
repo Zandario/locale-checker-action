@@ -26087,6 +26087,7 @@ function main() {
                 }
                 core.setFailed('Could not validate all locale files, see log for more information.');
             }
+            core.endGroup();
         }
         catch (e) {
             if (e instanceof Error) {
@@ -26096,7 +26097,6 @@ function main() {
                 core.setFailed('An unknown error occurred');
             }
         }
-        core.endGroup();
     });
 }
 main();

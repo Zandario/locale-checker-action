@@ -113,6 +113,7 @@ async function main(): Promise<void> {
             core.setFailed('Could not validate all locale files, see log for more information.');
         }
 
+        core.endGroup()
     } catch (e) {
         if (e instanceof Error) {
             core.setFailed(e.message);
@@ -120,7 +121,6 @@ async function main(): Promise<void> {
             core.setFailed('An unknown error occurred');
         }
     }
-        core.endGroup()
 }
 
 main();
