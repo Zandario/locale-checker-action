@@ -9,7 +9,15 @@ export interface Locale {
     messages: Record<string, string>;
 }
 
-export interface AnnotationMessage {
-    messageType: 'notice' |'error' | 'warning';
-    AnnotationProperties: AnnotationProperties;
+export class AnnotatedError extends Error {
+    annotationProperties?: AnnotationProperties;
+
+    constructor(message?: string, annotationProperties?: AnnotationProperties) {
+        super(message); // Call the constructor of the Error class.
+        this.name = 'AnnotatedError'; // Set the name property.
+        this.annotationProperties = annotationProperties;
+
+        // This line is needed to make the instanceof operator work correctly.
+        Object.setPrototypeOf(this, AnnotatedError.prototype);
+    }
 }

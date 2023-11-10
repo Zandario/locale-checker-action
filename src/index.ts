@@ -2,13 +2,13 @@ import * as core from '@actions/core';
 import * as fs from 'fs';
 import * as path from 'node:path';
 import * as glob from 'glob';
-import { AnnotationMessage, Locale } from './helper';
+import { AnnotatedError, Locale } from './helper';
 
 const workspace: string = process.env.CI ? process.env['GITHUB_WORKSPACE'] || '' : './../Locale';
 const mainLanguage = 'en.json';
 
 
-async function loadLocaleFile(file: string): Promise<{ success: boolean, json: Locale | null, error: Error | null }> {
+async function loadLocaleFile(file: string): Promise<{ success: boolean, json: Locale | null, error: AnnotatedError | null }> {
     let filePath = file;
     if (!filePath.includes("Locale")) {
         filePath = path.join(workspace, file);
@@ -19,11 +19,11 @@ async function loadLocaleFile(file: string): Promise<{ success: boolean, json: L
         const fileJson = JSON.parse(fileContents) as Locale;
         return { success: true, json: fileJson, error: null };
     } catch (e) {
-        return { success: false, json: null, error: new Error(`Could not validate the ${file} language file. Reason: ${e}`) };
+        return { success: false, json: null, error: new AnnotatedError(`Could not validate the ${file} language file. Reason: ${e}`) };
     }
 }
 
-async function validateLocale(locale: Locale, keys: string[]): Promise<{ success: boolean, error: Error | null }> {
+async function validateLocale(locale: Locale, keys: string[]): Promise<{ success: boolean, error: AnnotatedError | null }> {
     const invalidKeys = Object
         .keys(locale.messages)
         .filter((key: string) => !keys.includes(key));
@@ -31,7 +31,7 @@ async function validateLocale(locale: Locale, keys: string[]): Promise<{ success
     if (invalidKeys.length > 0) {
         return {
             success: false,
-            error: new Error(`Locale: ${locale.localeCode} has invalid keys: ${invalidKeys.join(',')}`)
+            error: new AnnotatedError(`Locale: ${locale.localeCode} has invalid keys: ${invalidKeys.join(',')}`)
         };
     }
     return { success: true, error: null };
@@ -48,8 +48,7 @@ async function main(): Promise<void> {
         // Get the keys from the reference JSON file
         const referenceKeys = Object.keys(referenceData);
 
-        const errors: Error[] = [];
-        const experimentalErrors: Error[] = [];
+        const errors: AnnotatedError[] = [];
 
         const mainLocaleResult = await loadLocaleFile(mainLanguage);
         if (!mainLocaleResult.success) {
@@ -64,38 +63,7 @@ async function main(): Promise<void> {
         const mainKeys = Object.keys(mainLocale!.messages);
         const locales = glob.sync(path.join(workspace, '*.json')).filter(locales => locales !== 'mainLanguage');
 
-        core.startGroup('Experimental Test')
-
-        for (const localeFile of locales) {
-            core.info(`Reading ${localeFile}`);
-            // Read the JSON file
-            const LocaleData = JSON.parse(fs.readFileSync(localeFile, 'utf8'));
-
-            // Check that each key exists in the JSON file
-            for (const key of referenceKeys) {
-                if (!(key in LocaleData)) {
-                    console.log(`Key ${key} is missing from ${localeFile}`);
-                }
-            }
-            // Check for keys in data that aren't in the reference
-            for (const key in LocaleData) {
-                if (!referenceKeys.includes(key)) {
-                    experimentalErrors.push(new Error(`Key ${key} is not in the reference but exists in ${localeFile}`));
-                    // console.log(`Key ${key} is not in the reference but exists in ${localeFile}`);
-                }
-            }
-        }
-        if (experimentalErrors.length == 0) {
-            core.info('All locale files were validated successfully');
-        } else {
-            for (let error of experimentalErrors) {
-                core.error(error.message);
-            }
-            core.setFailed('Could not validate all locale files, see log for more information.');
-        }
-        core.endGroup()
-
-        core.startGroup('Stable Test')
+        core.startGroup('Validating Locales')
         for (let locale of locales) {
 
             core.info(`Validating ${locale}`);
@@ -129,7 +97,7 @@ async function main(): Promise<void> {
         core.endGroup()
 
     } catch (e) {
-        if (e instanceof Error) {
+        if (e instanceof AnnotatedError) {
             core.setFailed(e.message);
         } else {
             core.setFailed('An unknown error occurred');

@@ -25950,6 +25950,27 @@ exports["default"] = _default;
 
 /***/ }),
 
+/***/ 2707:
+/***/ ((__unused_webpack_module, exports) => {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.AnnotatedError = void 0;
+class AnnotatedError extends Error {
+    constructor(message, annotationProperties) {
+        super(message); // Call the constructor of the Error class.
+        this.name = 'AnnotatedError'; // Set the name property.
+        this.annotationProperties = annotationProperties;
+        // This line is needed to make the instanceof operator work correctly.
+        Object.setPrototypeOf(this, AnnotatedError.prototype);
+    }
+}
+exports.AnnotatedError = AnnotatedError;
+
+
+/***/ }),
+
 /***/ 6144:
 /***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
 
@@ -25992,6 +26013,7 @@ const core = __importStar(__nccwpck_require__(2186));
 const fs = __importStar(__nccwpck_require__(7147));
 const path = __importStar(__nccwpck_require__(9411));
 const glob = __importStar(__nccwpck_require__(8211));
+const helper_1 = __nccwpck_require__(2707);
 const workspace = process.env.CI ? process.env['GITHUB_WORKSPACE'] || '' : './../Locale';
 const mainLanguage = 'en.json';
 function loadLocaleFile(file) {
@@ -26007,7 +26029,7 @@ function loadLocaleFile(file) {
             return { success: true, json: fileJson, error: null };
         }
         catch (e) {
-            return { success: false, json: null, error: new Error(`Could not validate the ${file} language file. Reason: ${e}`) };
+            return { success: false, json: null, error: new helper_1.AnnotatedError(`Could not validate the ${file} language file. Reason: ${e}`) };
         }
     });
 }
@@ -26019,7 +26041,7 @@ function validateLocale(locale, keys) {
         if (invalidKeys.length > 0) {
             return {
                 success: false,
-                error: new Error(`Locale: ${locale.localeCode} has invalid keys: ${invalidKeys.join(',')}`)
+                error: new helper_1.AnnotatedError(`Locale: ${locale.localeCode} has invalid keys: ${invalidKeys.join(',')}`)
             };
         }
         return { success: true, error: null };
@@ -26034,7 +26056,6 @@ function main() {
             // Get the keys from the reference JSON file
             const referenceKeys = Object.keys(referenceData);
             const errors = [];
-            const experimentalErrors = [];
             const mainLocaleResult = yield loadLocaleFile(mainLanguage);
             if (!mainLocaleResult.success) {
                 if (mainLocaleResult.error) {
@@ -26046,36 +26067,7 @@ function main() {
             const mainLocale = mainLocaleResult.json;
             const mainKeys = Object.keys(mainLocale.messages);
             const locales = glob.sync(path.join(workspace, '*.json')).filter(locales => locales !== 'mainLanguage');
-            core.startGroup('Experimental Test');
-            for (const localeFile of locales) {
-                core.info(`Reading ${localeFile}`);
-                // Read the JSON file
-                const LocaleData = JSON.parse(fs.readFileSync(localeFile, 'utf8'));
-                // Check that each key exists in the JSON file
-                for (const key of referenceKeys) {
-                    if (!(key in LocaleData)) {
-                        console.log(`Key ${key} is missing from ${localeFile}`);
-                    }
-                }
-                // Check for keys in data that aren't in the reference
-                for (const key in LocaleData) {
-                    if (!referenceKeys.includes(key)) {
-                        experimentalErrors.push(new Error(`Key ${key} is not in the reference but exists in ${localeFile}`));
-                        // console.log(`Key ${key} is not in the reference but exists in ${localeFile}`);
-                    }
-                }
-            }
-            if (experimentalErrors.length == 0) {
-                core.info('All locale files were validated successfully');
-            }
-            else {
-                for (let error of experimentalErrors) {
-                    core.error(error.message);
-                }
-                core.setFailed('Could not validate all locale files, see log for more information.');
-            }
-            core.endGroup();
-            core.startGroup('Stable Test');
+            core.startGroup('Validating Locales');
             for (let locale of locales) {
                 core.info(`Validating ${locale}`);
                 const localeJsonResult = yield loadLocaleFile(locale);
@@ -26105,7 +26097,7 @@ function main() {
             core.endGroup();
         }
         catch (e) {
-            if (e instanceof Error) {
+            if (e instanceof helper_1.AnnotatedError) {
                 core.setFailed(e.message);
             }
             else {
